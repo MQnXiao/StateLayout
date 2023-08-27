@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.mx.android.statelayout"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         minSdk = 24
@@ -16,8 +16,10 @@ android {
 
     buildTypes {
         release {
+            @Suppress("UnstableApiUsage")
             isMinifyEnabled = false
             proguardFiles(
+                @Suppress("UnstableApiUsage")
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
@@ -29,6 +31,10 @@ android {
     }
     kotlinOptions {
         jvmTarget = "1.8"
+    }
+    @Suppress("UnstableApiUsage")
+    buildFeatures {
+        viewBinding = true
     }
 }
 

@@ -26,13 +26,16 @@ class StateLayout @JvmOverloads constructor(
     private var stateViews = SparseArray<IStateView>(4)
 
     init {
-        Log.d("TAG", "------------>${childCount}")
+        Log.d("TAG", "-0---StateLayout-------->${childCount}")
     }
 
     private fun init() {
 
     }
 
+    override fun onFinishInflate() {
+        super.onFinishInflate()
+    }
 
     internal fun init(builder: Builder) {
         this.stateViews = builder.stateViews

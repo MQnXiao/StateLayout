@@ -1,5 +1,4 @@
 <resources>
-    <string name="app_name">StateLayout</string>
     <string name="def_network_error">网络错误</string>
     <string name="def_empty_data">暂无数据</string>
     <string name="reload">重试</string>
