@@ -2,13 +2,10 @@ package com.mx.android.statelayout
 
 import android.content.Context
 import android.util.AttributeSet
-import android.util.Log
 import android.util.SparseArray
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import com.mx.android.statelayout.simple.DataEmptyStateView
-import com.mx.android.statelayout.simple.NetworkErrorStateView
 
 /**
  *
@@ -23,45 +20,61 @@ class StateLayout @JvmOverloads constructor(
 
     private var mState = State.CONTENT
 
-    private var stateViews = SparseArray<IStateView>(4)
+    private var stateViews = SparseArray<IStateView>(3)
 
     init {
-        Log.d("TAG", "-0---StateLayout-------->${childCount}")
-    }
+        val typedArray = context.obtainStyledAttributes(attrs, R.styleable.StateLayout)
+        val contentLayoutId = typedArray.getResourceId(R.styleable.StateLayout_content_layout, 0)
+        val emptyLayoutId = typedArray.getResourceId(R.styleable.StateLayout_empty_layout, 0)
+        val errorLayoutId = typedArray.getResourceId(R.styleable.StateLayout_error_layout, 0)
+        val loadingLayoutId = typedArray.getResourceId(R.styleable.StateLayout_loading_layout, 0)
 
-    private fun init() {
+        if (contentLayoutId != 0) {
+            stateViews.put(State.CONTENT, BaseStateView(contentLayoutId, State.CONTENT))
+        }
+        if (emptyLayoutId != 0) {
+            stateViews.put(State.EMPTY, BaseStateView(emptyLayoutId, State.EMPTY))
+        }
+        if (loadingLayoutId != 0) {
+            stateViews.put(State.LOADING, BaseStateView(loadingLayoutId, State.LOADING))
+        }
+        if (errorLayoutId != 0) {
+            stateViews.put(State.ERROR, BaseStateView(errorLayoutId, State.ERROR))
+        }
+        mState = typedArray.getInt(R.styleable.StateLayout_default_State, State.CONTENT)
 
+        typedArray.recycle()
     }
 
     override fun onFinishInflate() {
         super.onFinishInflate()
+        if (childCount > 0) {
+            stateViews.put(State.CONTENT, BaseStateView(getChildAt(0), State.CONTENT))
+            mState = State.CONTENT
+        } else {
+            stateViews.get(mState).show(this)
+        }
     }
 
     internal fun init(builder: Builder) {
         this.stateViews = builder.stateViews
-        stateViews.get(mState.value).show(this)
+        stateViews.get(mState).show(this)
     }
+
 
     fun showStateView(state: Int) {
-        showStateView(State.create(state))
-    }
-
-    fun showStateView(state: State) {
-        if (state.value != mState.value) {
-            val stateView = stateViews.get(state.value) ?: return
-            stateViews.get(mState.value)?.hide(this)
+        if (state != mState) {
+            val stateView = stateViews.get(state) ?: return
             stateView.show(this)
+            stateViews.get(mState)?.hide()
             mState = state
         }
     }
 
-    fun getIStateView(state: State): IStateView? {
-        return stateViews.get(state.value)
+    fun getIStateView(state: Int): IStateView? {
+        return stateViews.get(state)
     }
 
-    fun <T : IStateView> getStateView(state: State): T? {
-        return stateViews.get(state.value) as? T
-    }
 
     fun getCurrentStateView() = getIStateView(mState)
 
@@ -82,25 +95,16 @@ class StateLayout @JvmOverloads constructor(
     }
 
     fun addStateView(stateView: IStateView) {
-        this.stateViews.append(stateView.getState().value, stateView)
+        this.stateViews.put(stateView.getState(), stateView)
     }
 
-    fun removeStateView(state: State) {
-        this.stateViews.remove(state.value)
-    }
-
-
-    companion object {
-        @JvmStatic
-        fun create(context: Context) = StateLayout(context)
-
-        fun default(target: View, retry: (() -> Unit)? = null): StateLayout? {
-            return Builder(target)
-                .addStateView(DataEmptyStateView())
-                .addStateView(NetworkErrorStateView(retry))
-                .build()
+    fun removeStateView(state: Int) {
+        this.stateViews.get(state)?.let {
+            this.stateViews.remove(state)
+            it.remove(this)
         }
     }
+
 
     class Builder(private val target: View) {
         private val mContext = target.context
@@ -109,19 +113,29 @@ class StateLayout @JvmOverloads constructor(
         internal val stateViews = SparseArray<IStateView>(3)
 
         fun addStateView(stateView: IStateView): Builder {
-            stateViews.put(stateView.getState().value, stateView)
+            stateViews.put(stateView.getState(), stateView)
             return this
         }
 
-        fun build(): StateLayout? {
+        fun addStateView(stateView: BaseStateView): Builder {
+            stateViews.put(stateView.getState(), stateView)
+            return this
+        }
+
+        fun addStateView(state: Int, stateView: View): Builder {
+            addStateView(BaseStateView(stateView, state))
+            return this
+        }
+
+        fun build(): StateLayout {
             if (parent != null) {
-                stateLayout = create(mContext)
+                stateLayout = StateLayout(mContext)
                 replaceTargetView(parent.indexOfChild(target))
-                addStateView(ContentStateView(target))
+                addStateView(BaseStateView(target, State.CONTENT))
                 stateLayout.init(this)
                 return stateLayout
             }
-            return null
+            return StateLayout(mContext)
         }
 
         private fun replaceTargetView(index: Int) {

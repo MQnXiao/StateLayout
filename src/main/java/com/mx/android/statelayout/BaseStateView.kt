@@ -4,6 +4,7 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import androidx.annotation.LayoutRes
+import androidx.core.view.children
 import androidx.core.view.isVisible
 
 /**
@@ -11,46 +12,67 @@ import androidx.core.view.isVisible
  * @author Mx
  * @date 2023/03/08
  */
-abstract class BaseStateView(protected var view: View? = null) : IStateView {
+open class BaseStateView : IStateView {
 
     private var attach = false
 
-    private var mState: State? = null
+    private var view: View? = null
+
+    private var mState: Int = -1
+
+    @LayoutRes
+    private var layoutId = 0
+
+    constructor()
+    constructor(view: View, state: Int) {
+        this.view = view
+        this.mState = state
+    }
+
+    constructor(@LayoutRes layoutId: Int, state: Int) {
+        this.layoutId = layoutId
+        this.mState = state
+    }
+
 
     final override fun show(stateLayout: StateLayout) {
         view = view ?: getView(stateLayout.context)
         if (!attach) {
             attach = true
-            stateLayout.addView(view)
+            if (mState != State.CONTENT || !stateLayout.children.contains(view)) {
+                stateLayout.addView(view)
+            }
             onAttach()
         }
-        view?.isVisible = true
+        view?.visibility = View.VISIBLE
         onShow()
     }
 
-    final override fun hide(stateLayout: StateLayout) {
-        view?.isVisible = false
+    final override fun hide() {
+        view?.visibility = View.GONE
         onHide()
+    }
+
+    override fun remove(stateLayout: StateLayout) {
+        if (attach) {
+            stateLayout.removeView(view)
+            onDetach()
+        }
     }
 
     protected open fun getView(context: Context): View {
         return LayoutInflater.from(context).inflate(getLayoutId(), null)
     }
 
-    override fun getState(): State {
-        return mState ?: let {
-            val state = State.create(getViewState())
-            mState = state
-            return state
-        }
+    override fun getState(): Int {
+        return mState
     }
 
-    protected open fun getViewState(): Int = State.EMPTY.value
-
     @LayoutRes
-    protected open fun getLayoutId(): Int = 0
+    protected open fun getLayoutId(): Int = layoutId
 
     protected open fun onAttach() {}
+    protected open fun onDetach() {}
     protected open fun onShow() {}
 
     protected open fun onHide() {}

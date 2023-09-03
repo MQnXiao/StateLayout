@@ -9,7 +9,9 @@ interface IStateView {
 
     fun show(stateLayout: StateLayout)
 
-    fun hide(stateLayout: StateLayout)
+    fun hide()
 
-    fun getState(): State
+    fun getState(): Int
+
+    fun remove(stateLayout: StateLayout)
 }
