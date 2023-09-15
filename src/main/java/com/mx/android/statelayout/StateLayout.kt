@@ -6,13 +6,14 @@ import android.util.SparseArray
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.annotation.LayoutRes
 
 /**
  *
  * @author Mx
  * @date 2023/03/08
  */
-class StateLayout @JvmOverloads constructor(
+open class StateLayout @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
@@ -20,9 +21,14 @@ class StateLayout @JvmOverloads constructor(
 
     private var mState = State.CONTENT
 
-    private var stateViews = SparseArray<IStateView>(3)
+    private var stateViews = SparseArray<IStateView>(4)
+
+    constructor(context: Context, builder: Builder) : this(context) {
+        this.stateViews = builder.stateViews
+    }
 
     init {
+
         val typedArray = context.obtainStyledAttributes(attrs, R.styleable.StateLayout)
         val contentLayoutId = typedArray.getResourceId(R.styleable.StateLayout_content_layout, 0)
         val emptyLayoutId = typedArray.getResourceId(R.styleable.StateLayout_empty_layout, 0)
@@ -42,25 +48,17 @@ class StateLayout @JvmOverloads constructor(
             stateViews.put(State.ERROR, BaseStateView(errorLayoutId, State.ERROR))
         }
         mState = typedArray.getInt(R.styleable.StateLayout_default_State, State.CONTENT)
-
         typedArray.recycle()
+
     }
 
     override fun onFinishInflate() {
         super.onFinishInflate()
         if (childCount > 0) {
             stateViews.put(State.CONTENT, BaseStateView(getChildAt(0), State.CONTENT))
-            mState = State.CONTENT
-        } else {
-            stateViews.get(mState).show(this)
         }
-    }
-
-    internal fun init(builder: Builder) {
-        this.stateViews = builder.stateViews
         stateViews.get(mState).show(this)
     }
-
 
     fun showStateView(state: Int) {
         if (state != mState) {
@@ -71,12 +69,11 @@ class StateLayout @JvmOverloads constructor(
         }
     }
 
-    fun getIStateView(state: Int): IStateView? {
+    fun getStateView(state: Int): IStateView? {
         return stateViews.get(state)
     }
 
-
-    fun getCurrentStateView() = getIStateView(mState)
+    fun getCurrentStateView() = getStateView(mState)
 
     fun showContent() {
         showStateView(State.CONTENT)
@@ -98,6 +95,19 @@ class StateLayout @JvmOverloads constructor(
         this.stateViews.put(stateView.getState(), stateView)
     }
 
+    fun addStateView(stateView: BaseStateView) {
+        stateViews.put(stateView.getState(), stateView)
+    }
+
+    fun addStateView(state: Int, stateView: View) {
+        addStateView(BaseStateView(stateView, state))
+    }
+
+    fun addStateView(state: Int, @LayoutRes layoutId: Int) {
+        addStateView(BaseStateView(layoutId, state))
+    }
+
+
     fun removeStateView(state: Int) {
         this.stateViews.get(state)?.let {
             this.stateViews.remove(state)
@@ -107,9 +117,6 @@ class StateLayout @JvmOverloads constructor(
 
 
     class Builder(private val target: View) {
-        private val mContext = target.context
-        private val parent = target.parent as? ViewGroup
-        private lateinit var stateLayout: StateLayout
         internal val stateViews = SparseArray<IStateView>(3)
 
         fun addStateView(stateView: IStateView): Builder {
@@ -127,28 +134,22 @@ class StateLayout @JvmOverloads constructor(
             return this
         }
 
-        fun build(): StateLayout {
-            if (parent != null) {
-                stateLayout = StateLayout(mContext)
-                replaceTargetView(parent.indexOfChild(target))
-                addStateView(BaseStateView(target, State.CONTENT))
-                stateLayout.init(this)
-                return stateLayout
-            }
-            return StateLayout(mContext)
+        fun addStateView(state: Int, @LayoutRes layoutId: Int): Builder {
+            addStateView(BaseStateView(layoutId, state))
+            return this
         }
 
-        private fun replaceTargetView(index: Int) {
-            val params = target.layoutParams
-            parent?.removeView(target)
-            target.layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-            parent?.addView(stateLayout, index, params)
+        fun build(): StateLayout? {
+            val parent = target.parent as? ViewGroup ?: return null
+            addStateView(BaseStateView(target, State.CONTENT))
+            val stateLayout = StateLayout(target.context, this)
+            stateLayout.layoutParams = target.layoutParams
+            target.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            val index = parent.indexOfChild(target)
+            parent.removeView(target)
+            parent.addView(stateLayout, index)
+            stateLayout.getStateView(State.CONTENT)?.show(stateLayout)
+            return stateLayout
         }
-
     }
-
-
 }

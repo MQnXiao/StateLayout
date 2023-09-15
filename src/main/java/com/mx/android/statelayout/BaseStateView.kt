@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import androidx.annotation.LayoutRes
 import androidx.core.view.children
+import androidx.core.view.contains
 import androidx.core.view.isVisible
 
 /**
@@ -39,7 +40,7 @@ open class BaseStateView : IStateView {
         view = view ?: getView(stateLayout.context)
         if (!attach) {
             attach = true
-            if (mState != State.CONTENT || !stateLayout.children.contains(view)) {
+            if (stateLayout.indexOfChild(view)==-1) {
                 stateLayout.addView(view)
             }
             onAttach()
@@ -54,7 +55,7 @@ open class BaseStateView : IStateView {
     }
 
     override fun remove(stateLayout: StateLayout) {
-        if (attach) {
+        if (attach&&stateLayout.indexOfChild(view)!=-1) {
             stateLayout.removeView(view)
             onDetach()
         }
