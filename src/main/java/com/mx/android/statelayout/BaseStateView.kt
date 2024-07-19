@@ -3,10 +3,9 @@ package com.mx.android.statelayout
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.annotation.LayoutRes
-import androidx.core.view.children
-import androidx.core.view.contains
-import androidx.core.view.isVisible
 
 /**
  *
@@ -15,9 +14,11 @@ import androidx.core.view.isVisible
  */
 open class BaseStateView : IStateView {
 
+    protected val layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
     private var attach = false
 
-    private var view: View? = null
+    protected var view: View? = null
+        private set
 
     private var mState: Int = -1
 
@@ -37,11 +38,11 @@ open class BaseStateView : IStateView {
 
 
     final override fun show(stateLayout: StateLayout) {
-        view = view ?: getView(stateLayout.context)
+        view = view ?: createView(stateLayout.context)
         if (!attach) {
             attach = true
-            if (stateLayout.indexOfChild(view)==-1) {
-                stateLayout.addView(view)
+            if (stateLayout.indexOfChild(view) == -1) {
+                stateLayout.addView(view, layoutParams)
             }
             onAttach()
         }
@@ -55,13 +56,13 @@ open class BaseStateView : IStateView {
     }
 
     override fun remove(stateLayout: StateLayout) {
-        if (attach&&stateLayout.indexOfChild(view)!=-1) {
+        if (attach && stateLayout.indexOfChild(view) != -1) {
             stateLayout.removeView(view)
             onDetach()
         }
     }
 
-    protected open fun getView(context: Context): View {
+    protected open fun createView(context: Context): View {
         return LayoutInflater.from(context).inflate(getLayoutId(), null)
     }
 
@@ -71,6 +72,16 @@ open class BaseStateView : IStateView {
 
     @LayoutRes
     protected open fun getLayoutId(): Int = layoutId
+
+    fun setWidth(width: Int) {
+        layoutParams.width = width
+        view?.layoutParams = layoutParams
+    }
+
+    fun setHeight(height: Int) {
+        layoutParams.height = height
+        view?.layoutParams = layoutParams
+    }
 
     protected open fun onAttach() {}
     protected open fun onDetach() {}

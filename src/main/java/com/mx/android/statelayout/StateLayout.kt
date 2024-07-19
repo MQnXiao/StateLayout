@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.annotation.LayoutRes
+import androidx.fragment.app.Fragment
 
 /**
  *
@@ -21,7 +22,7 @@ open class StateLayout @JvmOverloads constructor(
 
     private var mState = State.CONTENT
 
-    private var stateViews = SparseArray<IStateView>(4)
+    private var stateViews = SparseArray<BaseStateView>(4)
 
     constructor(context: Context, builder: Builder) : this(context) {
         this.stateViews = builder.stateViews
@@ -69,7 +70,7 @@ open class StateLayout @JvmOverloads constructor(
         }
     }
 
-    fun getStateView(state: Int): IStateView? {
+    fun getStateView(state: Int): BaseStateView? {
         return stateViews.get(state)
     }
 
@@ -91,19 +92,21 @@ open class StateLayout @JvmOverloads constructor(
         showStateView(State.ERROR)
     }
 
-    fun addStateView(stateView: IStateView) {
-        this.stateViews.put(stateView.getState(), stateView)
-    }
-
     fun addStateView(stateView: BaseStateView) {
         stateViews.put(stateView.getState(), stateView)
     }
 
     fun addStateView(state: Int, stateView: View) {
+        if (getStateView(state) != null) {
+            removeStateView(state)
+        }
         addStateView(BaseStateView(stateView, state))
     }
 
     fun addStateView(state: Int, @LayoutRes layoutId: Int) {
+        if (getStateView(state) != null) {
+            removeStateView(state)
+        }
         addStateView(BaseStateView(layoutId, state))
     }
 
@@ -117,12 +120,7 @@ open class StateLayout @JvmOverloads constructor(
 
 
     class Builder(private val target: View) {
-        internal val stateViews = SparseArray<IStateView>(3)
-
-        fun addStateView(stateView: IStateView): Builder {
-            stateViews.put(stateView.getState(), stateView)
-            return this
-        }
+        internal val stateViews = SparseArray<BaseStateView>(3)
 
         fun addStateView(stateView: BaseStateView): Builder {
             stateViews.put(stateView.getState(), stateView)
@@ -144,7 +142,6 @@ open class StateLayout @JvmOverloads constructor(
             addStateView(BaseStateView(target, State.CONTENT))
             val stateLayout = StateLayout(target.context, this)
             stateLayout.layoutParams = target.layoutParams
-            target.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
             val index = parent.indexOfChild(target)
             parent.removeView(target)
             parent.addView(stateLayout, index)
