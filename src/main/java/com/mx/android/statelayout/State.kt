@@ -10,4 +10,5 @@ object State {
     const val EMPTY = 1
     const val LOADING = 2
     const val ERROR = 3
+    const val NETWORK_ERROR_CODE = 4
 }
