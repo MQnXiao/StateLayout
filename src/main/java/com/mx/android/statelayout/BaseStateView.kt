@@ -37,7 +37,7 @@ open class BaseStateView : IStateView {
     }
 
 
-    final override fun show(stateLayout: StateLayout) {
+    override fun show(stateLayout: StateLayout) {
         view = view ?: createView(stateLayout.context)
         if (!attach) {
             attach = true
@@ -50,7 +50,7 @@ open class BaseStateView : IStateView {
         onShow()
     }
 
-    final override fun hide() {
+    override fun hide() {
         view?.visibility = View.GONE
         onHide()
     }
